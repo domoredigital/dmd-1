@@ -57,7 +57,7 @@ export default function Session({ voice, persona, setPersona, userData, topic, i
         }, 300);
         return;
       }
-    } else {
+   } else {
       // Live session — hit /api/chat
       setIsGenerating(true);
       try {
@@ -75,7 +75,12 @@ export default function Session({ voice, persona, setPersona, userData, topic, i
         setIsGenerating(false);
         const reply = data.reply || "I'm here with you. Tell me more.";
         addMessage('ai', reply);
-        speak(reply);
+        // Show one-tap suggested replies once the persona finishes speaking.
+        speak(reply).then(() => {
+          if (Array.isArray(data.suggestions) && data.suggestions.length) {
+            setChips(data.suggestions);
+          }
+        });
       } catch {
         setIsGenerating(false);
         const fallback = "I'm here with you. Tell me more.";

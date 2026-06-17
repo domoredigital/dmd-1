@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import Logo from '../Logo';
 import { VOICES } from '../../lib/voices';
 
@@ -29,6 +29,27 @@ export default function VoicePicker({ selectedVoice, onSelect, onBegin }) {
   const currentAudio = useRef(null);
   const [playingId, setPlayingId] = useState(null);
   const [loadingId, setLoadingId] = useState(null);
+
+  // Stop whatever preview is playing. Safe to call anytime.
+  function stopPreview() {
+    if (currentAudio.current) {
+      try { currentAudio.current.pause(); } catch (_) {}
+      currentAudio.current = null;
+    }
+    setPlayingId(null);
+    setLoadingId(null);
+  }
+
+  // Make sure a preview never keeps playing after this screen goes away.
+  useEffect(() => {
+    return () => stopPreview();
+  }, []);
+
+  // Stop the preview FIRST, then advance — so it can't overlap the opener.
+  function handleBegin() {
+    stopPreview();
+    onBegin();
+  }
 
   async function previewVoice(e, voice) {
     e.stopPropagation();
@@ -77,7 +98,7 @@ export default function VoicePicker({ selectedVoice, onSelect, onBegin }) {
       currentAudio.current = {
         pause: () => {
           try { source.stop(); } catch (_) {}
-          audioCtx.close();
+          try { audioCtx.close(); } catch (_) {}
         }
       };
     } catch (err) {
@@ -208,7 +229,7 @@ export default function VoicePicker({ selectedVoice, onSelect, onBegin }) {
 
       <button
         className={`cta-btn${selectedVoice ? ' ready' : ''}`}
-        onClick={onBegin}
+        onClick={handleBegin}
       >
         Let's begin →
       </button>

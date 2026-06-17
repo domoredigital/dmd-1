@@ -1,61 +1,108 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
-const STRENGTHS = ['Strategic thinker','Natural connector','Creative problem solver','Empathetic communicator','Visionary leader'];
-const GROWTH    = ['Avoids difficult conversations','Perfectionism','Lack of consistency'];
-const VALUES    = [['Freedom',92],['Impact',88],['Achievement',81],['Family',76],['Adventure',65]];
-const THEMES    = [
-  { icon: '🚀', name: 'Building confidence', count: '5 sessions' },
-  { icon: '🧭', name: 'Finding purpose',     count: '4 sessions' },
-  { icon: '💼', name: 'Career transitions',  count: '3 sessions' },
-];
+export default function Insights({ data, loading, userTurns = 0, onRefresh }) {
+  const [animate, setAnimate] = useState(false);
 
-export default function Insights() {
+  // Animate the value bars once data is present.
   useEffect(() => {
-    const bars = document.querySelectorAll('.val-bar');
-    const t = setTimeout(() => {
-      bars.forEach((b) => { b.style.width = b.getAttribute('data-w') + '%'; });
-    }, 200);
+    if (!data) return;
+    setAnimate(false);
+    const t = setTimeout(() => setAnimate(true), 150);
     return () => clearTimeout(t);
-  }, []);
+  }, [data]);
+
+  const hasData = data && (
+    (data.strengths && data.strengths.length) ||
+    (data.values && data.values.length) ||
+    (data.themes && data.themes.length)
+  );
 
   return (
     <div style={{ background: 'var(--black)', overflowY: 'auto', flex: 1, paddingBottom: 90 }}>
-      <div style={{ padding: '18px 20px 13px', borderBottom: '0.5px solid var(--border)' }}>
-        <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.4px', marginBottom: 3 }}>Your Insights</div>
-        <div style={{ fontSize: 13, color: 'var(--muted)' }}>Patterns from 7 conversations</div>
+      <div style={{ padding: '18px 20px 13px', borderBottom: '0.5px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.4px', marginBottom: 3 }}>Your Insights</div>
+          <div style={{ fontSize: 13, color: 'var(--muted)' }}>
+            {hasData ? 'What I’m noticing about you' : 'Patterns from your conversations'}
+          </div>
+        </div>
+        {hasData && onRefresh && (
+          <button
+            onClick={onRefresh}
+            disabled={loading}
+            style={{ padding: '5px 11px', borderRadius: 20, background: 'var(--s2)', border: '0.5px solid var(--border)', fontSize: 11, color: 'var(--muted)', cursor: loading ? 'default' : 'pointer', fontFamily: 'inherit', opacity: loading ? 0.5 : 1 }}
+          >
+            {loading ? 'Updating…' : 'Refresh'}
+          </button>
+        )}
       </div>
 
-      <Section title="Strengths">
-        {STRENGTHS.map((s) => <Tag key={s} label={s} />)}
-      </Section>
-
-      <Section title="Core values">
-        {VALUES.map(([label, pct]) => (
-          <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-            <span style={{ fontSize: 13, minWidth: 88 }}>{label}</span>
-            <div style={{ flex: 1, height: 3, background: 'var(--s3)', borderRadius: 2, overflow: 'hidden' }}>
-              <div className="val-bar" data-w={pct} style={{ height: 3, background: 'var(--gold)', borderRadius: 2, width: 0, transition: 'width 1.1s ease' }} />
-            </div>
-            <span style={{ fontSize: 12, color: 'var(--muted)', minWidth: 32, textAlign: 'right' }}>{pct}%</span>
+      {/* Empty state — not enough conversation yet */}
+      {!hasData && !loading && (
+        <div style={{ padding: '60px 30px', textAlign: 'center' }}>
+          <div style={{ fontSize: 34, marginBottom: 14 }}>🪞</div>
+          <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 8 }}>Your mirror is still forming</div>
+          <div style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.6, maxWidth: 280, margin: '0 auto' }}>
+            {userTurns > 0
+              ? 'Have a few more conversations and I’ll start reflecting back what I notice about you.'
+              : 'Once you’ve talked through a few questions, your strengths, values, and themes will appear here.'}
           </div>
-        ))}
-      </Section>
+        </div>
+      )}
 
-      <Section title="Life themes">
-        {THEMES.map((t) => (
-          <div key={t.name} style={{ display: 'flex', gap: 10, alignItems: 'center', background: 'var(--s2)', border: '0.5px solid var(--border)', borderRadius: 10, padding: '10px 13px', marginBottom: 7 }}>
-            <div style={{ width: 33, height: 33, borderRadius: 8, background: 'var(--s3)', border: '0.5px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, flexShrink: 0 }}>{t.icon}</div>
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 2 }}>{t.name}</div>
-              <div style={{ fontSize: 12, color: 'var(--muted)' }}>{t.count}</div>
-            </div>
+      {/* Loading — first analysis */}
+      {!hasData && loading && (
+        <div style={{ padding: '60px 30px', textAlign: 'center' }}>
+          <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 14 }}>
+            <div className="dot" /><div className="dot" /><div className="dot" />
           </div>
-        ))}
-      </Section>
+          <div style={{ fontSize: 13, color: 'var(--muted)' }}>Reading your conversations…</div>
+        </div>
+      )}
 
-      <Section title="Growth areas">
-        {GROWTH.map((g) => <Tag key={g} label={g} color="var(--red)" />)}
-      </Section>
+      {hasData && (
+        <>
+          {!!(data.strengths && data.strengths.length) && (
+            <Section title="Strengths">
+              {data.strengths.map((s) => <Tag key={s} label={s} />)}
+            </Section>
+          )}
+
+          {!!(data.values && data.values.length) && (
+            <Section title="Core values">
+              {data.values.map(([label, pct]) => (
+                <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                  <span style={{ fontSize: 13, minWidth: 88 }}>{label}</span>
+                  <div style={{ flex: 1, height: 3, background: 'var(--s3)', borderRadius: 2, overflow: 'hidden' }}>
+                    <div style={{ height: 3, background: 'var(--gold)', borderRadius: 2, width: animate ? `${pct}%` : 0, transition: 'width 1.1s ease' }} />
+                  </div>
+                  <span style={{ fontSize: 12, color: 'var(--muted)', minWidth: 32, textAlign: 'right' }}>{pct}%</span>
+                </div>
+              ))}
+            </Section>
+          )}
+
+          {!!(data.themes && data.themes.length) && (
+            <Section title="Life themes">
+              {data.themes.map((t, i) => (
+                <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'center', background: 'var(--s2)', border: '0.5px solid var(--border)', borderRadius: 10, padding: '10px 13px', marginBottom: 7 }}>
+                  <div style={{ width: 33, height: 33, borderRadius: 8, background: 'var(--s3)', border: '0.5px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, flexShrink: 0 }}>{t.emoji || '•'}</div>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 2 }}>{t.name}</div>
+                    {t.note && <div style={{ fontSize: 12, color: 'var(--muted)' }}>{t.note}</div>}
+                  </div>
+                </div>
+              ))}
+            </Section>
+          )}
+
+          {!!(data.growth && data.growth.length) && (
+            <Section title="Growth areas">
+              {data.growth.map((g) => <Tag key={g} label={g} color="var(--red)" />)}
+            </Section>
+          )}
+        </>
+      )}
     </div>
   );
 }

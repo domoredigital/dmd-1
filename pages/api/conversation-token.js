@@ -35,7 +35,12 @@ export default async function handler(req, res) {
     if (!elResponse.ok) {
       const errText = await elResponse.text();
       console.error('ElevenLabs token error:', elResponse.status, errText);
-      return res.status(502).json({ error: 'Could not start conversation' });
+      // TEMP DIAGNOSTIC: expose upstream reason so we can pinpoint the failure.
+      return res.status(502).json({
+        error: 'Could not start conversation',
+        upstreamStatus: elResponse.status,
+        detail: errText?.slice(0, 500),
+      });
     }
 
     const data = await elResponse.json();

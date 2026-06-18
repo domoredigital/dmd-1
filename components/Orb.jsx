@@ -35,30 +35,56 @@ const PALETTES = {
     amp: 0.16,
     warp: 0.12,
   },
+  // Distinct decorative palettes for the two guide choices.
+  femaleGuide: {
+    blobs: [
+      [228, 142, 138],  // warm rose
+      [224, 176, 96],   // soft gold
+      [236, 168, 150],  // coral blush
+      [186, 110, 110],  // deep rose
+    ],
+    speed: 0.16,
+    amp: 0.07,
+    warp: 0.05,
+  },
+  maleGuide: {
+    blobs: [
+      [88, 150, 150],   // teal
+      [80, 120, 150],   // steel blue
+      [110, 168, 150],  // sea green
+      [56, 92, 110],    // deep slate
+    ],
+    speed: 0.16,
+    amp: 0.07,
+    warp: 0.05,
+  },
 };
 
 function lerp(a, b, t) {
   return a + (b - a) * t;
 }
 
-export default function Orb({ state = 'idle', onClick, size = 240, hint }) {
+export default function Orb({ state = 'idle', onClick, size = 240, hint, palette, decorative = false }) {
   const canvasRef = useRef(null);
   const rafRef = useRef(0);
-  const stateRef = useRef(state);
+  // A fixed `palette` (e.g. for the guide avatars) overrides the state-driven one.
+  const targetKey = palette || state;
+  const stateRef = useRef(targetKey);
+  const initial = PALETTES[targetKey] || PALETTES.idle;
 
   // Animated values that ease toward the target palette.
   const animRef = useRef({
-    blobs: PALETTES.idle.blobs.map((c) => [...c]),
-    speed: PALETTES.idle.speed,
-    amp: PALETTES.idle.amp,
-    warp: PALETTES.idle.warp,
+    blobs: initial.blobs.map((c) => [...c]),
+    speed: initial.speed,
+    amp: initial.amp,
+    warp: initial.warp,
     t: 0,        // animation clock (scaled by speed)
     last: 0,     // last timestamp
   });
 
   useEffect(() => {
-    stateRef.current = state;
-  }, [state]);
+    stateRef.current = palette || state;
+  }, [state, palette]);
 
   useEffect(() => {
     const canvas = canvasRef.current;

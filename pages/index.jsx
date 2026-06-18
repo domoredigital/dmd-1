@@ -1,14 +1,14 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Head from 'next/head';
-import VoicePicker from '../components/screens/VoicePicker';
-import Session from '../components/screens/Session';
+import VoiceGate from '../components/screens/VoiceGate';
+import AgentSession from '../components/screens/AgentSession';
 import Home from '../components/screens/Home';
 import Insights from '../components/screens/Insights';
 import Leverage from '../components/screens/Leverage';
 import BottomNav from '../components/BottomNav';
 import {
-  loadUserData, saveUserData,
-  loadSessions, appendMessage,
+  loadUserData,
+  loadSessions,
   loadInsights, saveInsights,
   allMessages, countUserTurns,
 } from '../lib/store';
@@ -16,22 +16,13 @@ import {
 const MIN_TURNS = 4; // need a few real answers before insights mean anything
 
 export default function App() {
-  const [screen, setScreen] = useState('voice'); // voice | session | home | insights | leverage
-  const [selectedVoice, setSelectedVoice] = useState(null);
-  const [persona, setPersona] = useState('The Mentor');
+  const [screen, setScreen] = useState('gate'); // gate | session | home | insights | leverage
+  const [personaKey, setPersonaKey] = useState(null); // 'guide_female' | 'guide_male'
   const [userData, setUserData] = useState({});
-  const [sessionTopic, setSessionTopic] = useState('');
-  const [isOnboard, setIsOnboard] = useState(true);
 
   const [sessions, setSessions] = useState([]);
   const [insights, setInsights] = useState(null);     // { generatedAt, basisCount, data }
   const [insightsLoading, setInsightsLoading] = useState(false);
-
-  const currentSessionId = useRef(null);
-  const personaRef = useRef(persona);
-  const topicRef = useRef(sessionTopic);
-  useEffect(() => { personaRef.current = persona; }, [persona]);
-  useEffect(() => { topicRef.current = sessionTopic; }, [sessionTopic]);
 
   // Hydrate everything from local storage on first load.
   useEffect(() => {
@@ -40,19 +31,13 @@ export default function App() {
     setInsights(loadInsights());
   }, []);
 
-  const showNav = !['voice', 'session'].includes(screen) ||
-    (screen === 'session' && !isOnboard);
-
-  // Capture each live-session message into the persistent store.
-  const handleSessionMessage = useCallback((msg) => {
-    const id = currentSessionId.current;
-    if (!id) return;
-    const meta = { persona: personaRef.current, topic: topicRef.current };
-    setSessions((prev) => appendMessage(prev, id, meta, msg));
-  }, []);
+  const showNav = !['gate', 'session'].includes(screen);
 
   const generateInsights = useCallback(async (force) => {
-    const turns = countUserTurns(sessions);
+    // AgentSession persists messages straight to the store, so always read fresh.
+    const fresh = loadSessions();
+    setSessions(fresh);
+    const turns = countUserTurns(fresh);
     if (turns < MIN_TURNS) return;
     if (!force && insights && insights.basisCount >= turns) return; // already fresh
     setInsightsLoading(true);
@@ -60,7 +45,7 @@ export default function App() {
       const res = await fetch('/api/insights', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: allMessages(sessions), userData }),
+        body: JSON.stringify({ messages: allMessages(fresh), userData }),
       });
       const data = await res.json();
       if (data.insights) {
@@ -70,24 +55,22 @@ export default function App() {
       }
     } catch (_) {}
     setInsightsLoading(false);
-  }, [sessions, userData, insights]);
+  }, [userData, insights]);
 
-  function goSession(topic) {
-    setSessionTopic(topic);
-    setIsOnboard(false);
-    currentSessionId.current = `sess_${Date.now()}`;
+  function onChooseGuide(key) {
+    setPersonaKey(key);
     setScreen('session');
   }
 
-  function onOnboardComplete(data) {
-    setUserData(data);
-    saveUserData(data);
-    setIsOnboard(false);
+  function leaveSession() {
+    // Pull any messages AgentSession wrote to the store, then refresh user data.
+    setSessions(loadSessions());
+    setUserData(loadUserData());
     setScreen('home');
   }
 
   function handleNav(s) {
-    if (s === 'talk') { goSession('Talk'); return; }
+    if (s === 'talk') { setScreen(personaKey ? 'session' : 'gate'); return; }
     setScreen(s);
     if (s === 'insights' || s === 'leverage') generateInsights(false);
   }
@@ -104,30 +87,19 @@ export default function App() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <div className="app-shell">
-        {screen === 'voice' && (
-          <VoicePicker
-            onSelect={(voice) => setSelectedVoice(voice)}
-            onBegin={() => { setIsOnboard(true); currentSessionId.current = null; setScreen('session'); }}
-            selectedVoice={selectedVoice}
-          />
+        {screen === 'gate' && (
+          <VoiceGate onChoose={onChooseGuide} />
         )}
-        {screen === 'session' && selectedVoice && (
-          <Session
-            voice={selectedVoice}
-            persona={persona}
-            setPersona={setPersona}
-            userData={userData}
-            topic={sessionTopic}
-            isOnboard={isOnboard}
-            onOnboardComplete={onOnboardComplete}
-            onMessage={handleSessionMessage}
-            onBack={() => setScreen('home')}
+        {screen === 'session' && personaKey && (
+          <AgentSession
+            personaKey={personaKey}
+            onBack={leaveSession}
           />
         )}
         {screen === 'home' && (
           <Home
             userData={userData}
-            onGoSession={goSession}
+            onGoSession={() => setScreen(personaKey ? 'session' : 'gate')}
           />
         )}
         {screen === 'insights' && (

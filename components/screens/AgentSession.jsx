@@ -133,7 +133,14 @@ function SessionInner({ personaKey, onBack }) {
 
     try {
       const res = await fetch('/api/conversation-token', { method: 'POST' });
-      if (!res.ok) throw new Error('token request failed');
+      if (!res.ok) {
+        // 500 here means the server is missing ELEVENLABS_API_KEY;
+        // 502 means ElevenLabs rejected the token request.
+        if (res.status === 500) {
+          throw new Error('CONFIG');
+        }
+        throw new Error('token request failed');
+      }
       const { token } = await res.json();
       if (!token) throw new Error('no token returned');
 
@@ -145,7 +152,11 @@ function SessionInner({ personaKey, onBack }) {
       });
     } catch (err) {
       console.log('[v0] failed to start session:', err);
-      setError("I couldn't start the conversation. Tap to try again.");
+      if (err?.message === 'CONFIG') {
+        setError('Voice isn\'t configured yet — the ElevenLabs API key is missing on the server.');
+      } else {
+        setError("I couldn't start the conversation. Tap to try again.");
+      }
     } finally {
       setStarting(false);
     }

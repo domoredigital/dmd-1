@@ -96,12 +96,38 @@ function SessionInner({ personaKey, onBack }) {
     if (connected || starting) return;
     setError(null);
     setStarting(true);
-    try {
-      // Browsers require a user gesture + mic permission before audio capture.
-      await navigator.mediaDevices.getUserMedia({ audio: true });
-    } catch (_) {
+
+    // Browsers require a user gesture + mic permission before audio capture.
+    // mediaDevices is only present in a secure context (https/localhost) and,
+    // inside an iframe, only when the frame is granted `allow="microphone"`.
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
       setStarting(false);
-      setError('I need microphone access to talk with you. Enable it and tap again.');
+      setError(
+        window.self !== window.top
+          ? 'Microphone is blocked in this preview frame. Open the app in its own tab, then tap to start.'
+          : 'Your browser is blocking the microphone here. Make sure you are on a secure (https) connection and try again.'
+      );
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Release this probe stream; the SDK acquires its own on startSession.
+      stream.getTracks().forEach((t) => t.stop());
+    } catch (err) {
+      setStarting(false);
+      const name = err?.name;
+      if (name === 'NotAllowedError' || name === 'SecurityError') {
+        setError(
+          'Microphone access was blocked. Tap the mic/lock icon in your browser\'s address bar, allow the microphone, then tap to start again.'
+        );
+      } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+        setError('I couldn\'t find a microphone. Connect one and tap to start again.');
+      } else if (name === 'NotReadableError') {
+        setError('Your microphone is in use by another app. Close it and tap to start again.');
+      } else {
+        setError('I need microphone access to talk with you. Enable it and tap again.');
+      }
       return;
     }
 

@@ -1,18 +1,19 @@
 import { useState } from 'react';
 import Logo from '../Logo';
+import Orb from '../Orb';
 
 const CARDS = [
   {
     key: 'guide_female',
     label: 'Female guide',
     desc: 'Warm, perceptive, easy to talk to',
-    initial: 'F',
+    palette: 'femaleGuide',
   },
   {
     key: 'guide_male',
     label: 'Male guide',
     desc: 'Grounded, direct, steady',
-    initial: 'M',
+    palette: 'maleGuide',
   },
 ];
 
@@ -84,23 +85,20 @@ export default function VoiceGate({ onChoose }) {
             >
               <div
                 style={{
-                  width: 56,
-                  height: 56,
+                  width: 60,
+                  height: 60,
                   borderRadius: '50%',
-                  background: 'var(--black)',
-                  border: `1.5px solid ${isHover ? 'var(--gold)' : 'var(--border)'}`,
+                  flexShrink: 0,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: 22,
-                  fontWeight: 700,
-                  color: isHover ? 'var(--gold)' : 'var(--muted)',
-                  flexShrink: 0,
-                  letterSpacing: '-0.5px',
-                  transition: 'all 0.22s ease',
+                  boxShadow: isHover
+                    ? '0 0 0 1.5px var(--gold), 0 6px 18px rgba(0,0,0,0.45)'
+                    : '0 0 0 1px var(--border)',
+                  transition: 'box-shadow 0.22s ease',
                 }}
               >
-                {card.initial}
+                <Orb palette={card.palette} size={60} decorative />
               </div>
 
               <div style={{ flex: 1, minWidth: 0 }}>

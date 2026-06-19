@@ -203,6 +203,24 @@ export default function Orb({ state = 'idle', onClick, size = 240, hint, palette
     };
   }, [size]);
 
+  // Decorative mode: just the animated canvas, no button/hint wrapper.
+  // Lets the orb nest inside another interactive element (e.g. a card button).
+  if (decorative) {
+    return (
+      <canvas
+        ref={canvasRef}
+        aria-hidden="true"
+        style={{
+          width: size,
+          height: size,
+          borderRadius: '50%',
+          display: 'block',
+          background: 'transparent',
+        }}
+      />
+    );
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
       <button

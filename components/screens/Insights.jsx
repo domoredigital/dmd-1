@@ -62,21 +62,46 @@ export default function Insights({ data, loading, userTurns = 0, onRefresh }) {
 
       {hasData && (
         <>
+          {/* The honest mirror — what they may not be seeing */}
+          {!!data.honest_observation && (
+            <div style={{ padding: '16px 20px', borderBottom: '0.5px solid var(--border)' }}>
+              <div style={{ background: 'var(--s2)', border: '0.5px solid var(--gold)', borderRadius: 12, padding: '14px 16px' }}>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1, color: 'var(--gold)', textTransform: 'uppercase', marginBottom: 7 }}>Something I noticed…</div>
+                <div style={{ fontSize: 14, lineHeight: 1.55 }}>{data.honest_observation}</div>
+              </div>
+            </div>
+          )}
+
+          {/* Cross-session shift — only present with more than one session */}
+          {!!data.shift && (
+            <div style={{ padding: '16px 20px', borderBottom: '0.5px solid var(--border)' }}>
+              <div style={{ background: 'var(--s2)', border: '0.5px solid var(--border2)', borderRadius: 12, padding: '14px 16px' }}>
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1, color: 'var(--gold)', textTransform: 'uppercase', marginBottom: 7 }}>What’s changed…</div>
+                <div style={{ fontSize: 14, lineHeight: 1.55 }}>{data.shift}</div>
+              </div>
+            </div>
+          )}
+
           {!!(data.strengths && data.strengths.length) && (
             <Section title="Strengths">
-              {data.strengths.map((s) => <Tag key={s} label={s} />)}
+              {data.strengths.map((s, i) => (
+                <ReceiptItem key={i} label={s.text} quote={s.quote} />
+              ))}
             </Section>
           )}
 
           {!!(data.values && data.values.length) && (
             <Section title="Core values">
-              {data.values.map(([label, pct]) => (
-                <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                  <span style={{ fontSize: 13, minWidth: 88 }}>{label}</span>
-                  <div style={{ flex: 1, height: 3, background: 'var(--s3)', borderRadius: 2, overflow: 'hidden' }}>
-                    <div style={{ height: 3, background: 'var(--gold)', borderRadius: 2, width: animate ? `${pct}%` : 0, transition: 'width 1.1s ease' }} />
+              {data.values.map((v, i) => (
+                <div key={i} style={{ marginBottom: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontSize: 13, minWidth: 88 }}>{v.label}</span>
+                    <div style={{ flex: 1, height: 3, background: 'var(--s3)', borderRadius: 2, overflow: 'hidden' }}>
+                      <div style={{ height: 3, background: 'var(--gold)', borderRadius: 2, width: animate ? `${v.pct}%` : 0, transition: 'width 1.1s ease' }} />
+                    </div>
+                    <span style={{ fontSize: 12, color: 'var(--muted)', minWidth: 32, textAlign: 'right' }}>{v.pct}%</span>
                   </div>
-                  <span style={{ fontSize: 12, color: 'var(--muted)', minWidth: 32, textAlign: 'right' }}>{pct}%</span>
+                  {v.quote && <Receipt quote={v.quote} />}
                 </div>
               ))}
             </Section>
@@ -85,12 +110,15 @@ export default function Insights({ data, loading, userTurns = 0, onRefresh }) {
           {!!(data.themes && data.themes.length) && (
             <Section title="Life themes">
               {data.themes.map((t, i) => (
-                <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'center', background: 'var(--s2)', border: '0.5px solid var(--border)', borderRadius: 10, padding: '10px 13px', marginBottom: 7 }}>
-                  <div style={{ width: 33, height: 33, borderRadius: 8, background: 'var(--s3)', border: '0.5px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, flexShrink: 0 }}>{t.emoji || '•'}</div>
-                  <div>
-                    <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 2 }}>{t.name}</div>
-                    {t.note && <div style={{ fontSize: 12, color: 'var(--muted)' }}>{t.note}</div>}
+                <div key={i} style={{ background: 'var(--s2)', border: '0.5px solid var(--border)', borderRadius: 10, padding: '10px 13px', marginBottom: 7 }}>
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                    <div style={{ width: 33, height: 33, borderRadius: 8, background: 'var(--s3)', border: '0.5px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, flexShrink: 0 }}>{t.emoji || '•'}</div>
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 2 }}>{t.name}</div>
+                      {t.note && <div style={{ fontSize: 12, color: 'var(--muted)' }}>{t.note}</div>}
+                    </div>
                   </div>
+                  {t.quote && <Receipt quote={t.quote} />}
                 </div>
               ))}
             </Section>
@@ -98,7 +126,9 @@ export default function Insights({ data, loading, userTurns = 0, onRefresh }) {
 
           {!!(data.growth && data.growth.length) && (
             <Section title="Growth areas">
-              {data.growth.map((g) => <Tag key={g} label={g} color="var(--red)" />)}
+              {data.growth.map((g, i) => (
+                <ReceiptItem key={i} label={g.text} quote={g.quote} color="var(--red)" />
+              ))}
             </Section>
           )}
         </>
@@ -116,9 +146,28 @@ function Section({ title, children }) {
   );
 }
 
+// A subtle italic "receipt" — the user's own words backing an observation.
+function Receipt({ quote }) {
+  return (
+    <div style={{ fontSize: 12, color: 'var(--muted)', fontStyle: 'italic', marginTop: 6, paddingLeft: 9, borderLeft: '2px solid var(--border2)', lineHeight: 1.45 }}>
+      “{quote}”
+    </div>
+  );
+}
+
+// A labeled tag with an optional quote receipt underneath.
+function ReceiptItem({ label, quote, color = 'var(--gold)' }) {
+  return (
+    <div style={{ marginBottom: 10 }}>
+      <Tag label={label} color={color} />
+      {quote ? <Receipt quote={quote} /> : null}
+    </div>
+  );
+}
+
 function Tag({ label, color = 'var(--gold)' }) {
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', margin: '0 5px 5px 0', background: 'var(--s2)', border: '0.5px solid var(--border2)', borderRadius: 20, fontSize: 13 }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: 'var(--s2)', border: '0.5px solid var(--border2)', borderRadius: 20, fontSize: 13 }}>
       <span style={{ width: 6, height: 6, borderRadius: '50%', background: color, flexShrink: 0 }} />
       {label}
     </span>

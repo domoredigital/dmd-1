@@ -45,7 +45,7 @@ export default function App() {
       const res = await fetch('/api/insights', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: allMessages(fresh), userData }),
+        body: JSON.stringify({ messages: allMessages(fresh), userData, sessions: fresh }),
       });
       const data = await res.json();
       if (data.insights) {

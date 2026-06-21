@@ -8,6 +8,7 @@ import {
   loadSessions,
   saveUserData,
   loadUserData,
+  loadRecentContext,
 } from '../../lib/store';
 
 // Pull a likely first name out of a short user utterance like
@@ -38,7 +39,8 @@ function SessionInner({ personaKey, onBack }) {
   const [starting, setStarting] = useState(false);
 
   const sessionIdRef = useRef(`sess_${Date.now()}`);
-  const nameCapturedRef = useRef(false);
+  // If we already know the user's name, don't try to re-capture it.
+  const nameCapturedRef = useRef(Boolean(loadUserData()?.name));
   const transcriptRef = useRef(null);
 
   const conversation = useConversation({
@@ -144,7 +146,10 @@ function SessionInner({ personaKey, onBack }) {
       const { token } = await res.json();
       if (!token) throw new Error('no token returned');
 
-      const overrides = buildOverrides(personaKey, null, ANON_MAX_SECONDS);
+      // Returning-user memory: greet by saved name and seed recent context.
+      const savedName = loadUserData()?.name || null;
+      const recentContext = loadRecentContext();
+      const overrides = buildOverrides(personaKey, savedName, ANON_MAX_SECONDS, recentContext);
       await conversation.startSession({
         conversationToken: token,
         connectionType: 'webrtc',

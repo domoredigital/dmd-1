@@ -287,6 +287,21 @@ html, body {
   from { opacity: 0; }
   to   { opacity: 1; }
 }
+/* Celebratory "done" pop for completed actions */
+@keyframes celebratePop {
+  0%   { transform: scale(0.4); opacity: 0; }
+  55%  { transform: scale(1.18); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.celebrate-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  animation: celebratePop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.celebrate-row {
+  animation: breathe 0.5s ease-in-out;
+}
 
 /* ── Typing dots ── */
 .dot {

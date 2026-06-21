@@ -96,6 +96,7 @@ export default async function handler(req, res) {
       return res.status(502).json({
         error: 'Voice generation failed',
         status: elResponse.status,
+        detail: errText?.slice(0, 600), // TEMP DIAGNOSTIC
       });
     }
 

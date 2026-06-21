@@ -93,6 +93,13 @@ export default async function handler(req, res) {
     if (!elResponse.ok) {
       const errText = await elResponse.text();
       console.error('ElevenLabs error:', elResponse.status, errText);
+      // Detect out-of-credits so the client can show a clear message.
+      if (/quota_exceeded/.test(errText)) {
+        return res.status(402).json({
+          error: 'Voice credits exhausted',
+          code: 'quota_exceeded',
+        });
+      }
       return res.status(502).json({
         error: 'Voice generation failed',
         status: elResponse.status,

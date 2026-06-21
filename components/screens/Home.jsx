@@ -1,4 +1,5 @@
 import Logo from '../Logo';
+import AccountButton from '../AccountButton';
 import { DAILY_QUESTIONS } from '../../lib/onboard';
 import { useMemo } from 'react';
 
@@ -16,8 +17,11 @@ export default function Home({ userData, onGoSession }) {
         <div style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.4px' }}>
           Hey, <span style={{ color: 'var(--gold)' }}>{userData?.name || 'friend'}</span> ✦
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'var(--s2)', border: '0.5px solid var(--border)', borderRadius: 20, padding: '5px 10px', fontSize: 12, color: 'var(--muted)' }}>
-          🔥 <b style={{ color: 'var(--gold)' }}>3</b> days
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'var(--s2)', border: '0.5px solid var(--border)', borderRadius: 20, padding: '5px 10px', fontSize: 12, color: 'var(--muted)' }}>
+            🔥 <b style={{ color: 'var(--gold)' }}>3</b> days
+          </div>
+          <AccountButton />
         </div>
       </div>
 

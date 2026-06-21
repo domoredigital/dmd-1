@@ -26,6 +26,7 @@ export default function VoiceGate({ onChoose }) {
   const [hovered, setHovered] = useState(null);
   const [previewing, setPreviewing] = useState(null);   // card key currently playing
   const [loading, setLoading] = useState(null);         // card key fetching audio
+  const [previewError, setPreviewError] = useState(null); // { key, message }
   const audioRef = useRef(null);
 
   // Stop and release audio on unmount.
@@ -53,6 +54,7 @@ export default function VoiceGate({ onChoose }) {
       return;
     }
     stopPreview();
+    setPreviewError(null);
     setLoading(card.key);
     try {
       const res = await fetch('/api/speak', {
@@ -60,7 +62,15 @@ export default function VoiceGate({ onChoose }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: card.sample, voiceId: card.voiceId }),
       });
-      if (!res.ok) throw new Error('preview failed');
+      if (!res.ok) {
+        let code = null;
+        try { code = (await res.json()).code; } catch (_) {}
+        const message = code === 'quota_exceeded'
+          ? 'Voice preview unavailable — out of credits.'
+          : 'Preview unavailable right now.';
+        setPreviewError({ key: card.key, message });
+        return;
+      }
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
 
@@ -72,7 +82,7 @@ export default function VoiceGate({ onChoose }) {
       await audio.play();
       setPreviewing(card.key);
     } catch (_) {
-      setPreviewing(null);
+      setPreviewError({ key: card.key, message: 'Preview unavailable right now.' });
     } finally {
       setLoading(null);
     }
@@ -205,8 +215,16 @@ export default function VoiceGate({ onChoose }) {
                 <div style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.5 }}>
                   {card.desc}
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--dim)', marginTop: 6 }}>
-                  {isLoading ? 'Loading preview…' : isPlaying ? 'Playing preview…' : 'Tap the orb to hear this voice'}
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: previewError?.key === card.key ? 'var(--gold)' : 'var(--dim)',
+                    marginTop: 6,
+                  }}
+                >
+                  {previewError?.key === card.key
+                    ? previewError.message
+                    : isLoading ? 'Loading preview…' : isPlaying ? 'Playing preview…' : 'Tap the orb to hear this voice'}
                 </div>
               </div>
 
